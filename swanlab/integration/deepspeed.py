@@ -59,6 +59,9 @@ class SwanlabMonitor(Monitor):
         if config is None and config_params is not None:
             config = config_params
 
+        if isinstance(config, DeepSpeedConfig):
+            swanlab.config.update(dp_config._param_dict)
+
         if hasattr(args, "deepscale_config") and args.deepscale_config is not None:
             args.deepspeed_config = args.deepscale_config
             args.deepscale_config = None
@@ -67,8 +70,10 @@ class SwanlabMonitor(Monitor):
                 config is None
             ), "Not sure how to proceed, we were given deepspeed configs in the deepspeed arguments and deepspeed.initialize() function call"
             config = args.deepspeed_config
-        dp_config = DeepSpeedConfig(config)
-        swanlab.config.update(dp_config._param_dict)
+
+        if config is not None:
+            dp_config = DeepSpeedConfig(config)
+            swanlab.config.update(dp_config._param_dict)
 
     def write_events(self, event_list):
         if self.enabled and dist.get_rank() == 0:
