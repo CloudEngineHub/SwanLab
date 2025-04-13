@@ -78,17 +78,19 @@ class SwanWriterProxy:
             self.file = open(console_path, "a", encoding="utf-8")
         # 封装sys.stdout
         self.write_handler = sys.stdout.write
+        self.stderr_write_handler = sys.stderr.write  # 新增
 
-        def _(message):
+        def handle_message(message, is_stderr=False):
             try:
-                self.write_handler and self.write_handler(message)
-            except UnicodeEncodeError:
-                # 遇到编码问题，直接pass，此时表现为终端不输出
-                pass
-            except ValueError as e:
-                if "I/O operation on closed file" in str(e):
-                    # 遇到文件已关闭问题，直接pass，此时表现为终端不输出
-                    pass
+                # 如果是 stderr，也写入原始 stderr
+                if is_stderr:
+                    self.stderr_write_handler and self.stderr_write_handler(message)
+                else:
+                    self.write_handler and self.write_handler(message)
+            except (UnicodeEncodeError, ValueError) as e:
+                if isinstance(e, ValueError) and "I/O operation on closed file" not in str(e):
+                    raise
+
             # 限制上传长度
             message = FONT.clear(message)[: self.max_upload_len]
             self.write_callback and self.write_callback(message)
@@ -105,12 +107,23 @@ class SwanWriterProxy:
                 self.file.write(message)
                 self.file.flush()
 
-        sys.stdout.write = _
+        # 重定向 stdout.write
+        def stdout_wrapper(message):
+            handle_message(message, is_stderr=False)
+
+        sys.stdout.write = stdout_wrapper
+
+        # 新增：重定向 stderr.write
+        def stderr_wrapper(message):
+            handle_message(message, is_stderr=True)
+
+        sys.stderr.write = stderr_wrapper
         # 设置最大上传长度
         self.max_upload_len = get_settings().max_log_length
 
     def reset(self):
         sys.stdout.write = self.write_handler
+        sys.stderr.write = self.stderr_write_handler  # 新增
         self.file and self.file.close()
         self.file = None
         self.max_upload_len = None
