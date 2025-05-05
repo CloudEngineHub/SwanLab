@@ -87,15 +87,15 @@ def upload_files(files: List[FileModel]):
     file_model = FileModel.create(files)
     # 如果没有文件需要上传，直接返回
     if file_model.empty:
-        return
+        return None
     data = file_model.to_dict()
     http.put(f'/project/{http.groupname}/{http.projname}/runs/{http.exp_id}/profile', data)
+    return None
 
 
 @sync_error_handler
 def upload_column(columns: List[ColumnModel]):
     """
-    上传列信息，需要注意的是一次只能上传一个列，所以函数名不带s
     但是在设计上是聚合上传的，所以在此处需要进行拆分然后分别上传
     """
     http = get_http()
