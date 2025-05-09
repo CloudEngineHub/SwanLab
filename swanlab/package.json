@@ -1,6 +1,6 @@
 {
-  "name": "swanlab",
-  "version": "0.6.0-dev",
-  "description": "",
-  "python": "true"
+    "name": "swanlab",
+    "version": "5.7.1.beta",
+    "description": "",
+    "python": "true"
 }
